@@ -1,0 +1,16 @@
+---
+/**
+ * Injected as Starlight's `Pagination` override when `injectComponent` is on.
+ *
+ * `Pagination` is the only component Starlight renders unconditionally at the
+ * bottom of an article's content, which makes it the injection point for a
+ * related-articles section. Whatever `Pagination` was configured before this
+ * plugin — your own override, or Starlight's default — is rendered first and
+ * untouched, so wrapping it costs you nothing.
+ */
+import UserPagination from 'virtual:starlight-related-articles/user-pagination';
+import RelatedArticles from './RelatedArticles.astro';
+---
+
+<UserPagination><slot /></UserPagination>
+<RelatedArticles />

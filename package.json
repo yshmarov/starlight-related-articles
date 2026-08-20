@@ -1,0 +1,62 @@
+{
+  "name": "starlight-related-articles",
+  "version": "0.1.0",
+  "description": "Starlight plugin that adds a “Related articles” section to your docs, ranked by build-time content similarity (TF-IDF) — no tags, no external service.",
+  "keywords": [
+    "starlight",
+    "starlight-plugin",
+    "astro",
+    "astro-component",
+    "withastro",
+    "documentation",
+    "related-articles",
+    "related-posts",
+    "tf-idf",
+    "recommendations"
+  ],
+  "license": "MIT",
+  "author": "Yaro Shm",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yshmarov/starlight-related-articles.git"
+  },
+  "homepage": "https://github.com/yshmarov/starlight-related-articles#readme",
+  "bugs": {
+    "url": "https://github.com/yshmarov/starlight-related-articles/issues"
+  },
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./components/*": "./components/*",
+    "./middleware": "./middleware.ts",
+    "./route-data": "./libs/route-data.ts",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "components",
+    "libs",
+    "index.ts",
+    "middleware.ts",
+    "virtual.d.ts",
+    "README.md",
+    "LICENSE"
+  ],
+  "peerDependencies": {
+    "@astrojs/starlight": ">=0.32.0",
+    "astro": ">=5.5.0"
+  },
+  "devDependencies": {
+    "@astrojs/starlight": "^0.41.2",
+    "astro": "^7.0.6",
+    "typescript": "^5.9.2"
+  },
+  "engines": {
+    "node": ">=20.3.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  }
+}

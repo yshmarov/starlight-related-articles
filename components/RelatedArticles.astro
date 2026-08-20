@@ -1,0 +1,114 @@
+---
+/**
+ * Renders the related-articles section for the current page.
+ *
+ * The ranking itself happens in route middleware; this component only presents
+ * it. Render it yourself (with `injectComponent: false`) to place the section
+ * anywhere in your layout, or let the plugin append it below the pagination.
+ */
+import { Icon } from '@astrojs/starlight/components';
+import config from 'virtual:starlight-related-articles/config';
+import { getRelatedArticles } from '../libs/route-data.ts';
+import { buildTrailMap, trailFor } from '../libs/trail.ts';
+
+const related = getRelatedArticles(Astro.locals);
+const { sidebar } = Astro.locals.starlightRoute;
+
+const heading = Astro.locals.t('relatedArticles.title');
+const trails = config.showTrail ? buildTrailMap(sidebar) : undefined;
+---
+
+{
+	related.length > 0 && (
+		<nav class="sl-related print:hidden" aria-label={heading}>
+			<h2 class="sl-related__heading">{heading}</h2>
+			<ul class="sl-related__list">
+				{related.map((article) => {
+					const trail = trails ? trailFor(trails, article.href) : [];
+					return (
+						<li class="sl-related__item">
+							<a class="sl-related__link" href={article.href}>
+								{article.title}
+							</a>
+							{trail.length > 0 && (
+								<span class="sl-related__trail">
+									{config.trailIcon && <Icon name={config.trailIcon} class="sl-related__trail-icon" />}
+									{trail.join(` ${config.trailSeparator} `)}
+								</span>
+							)}
+						</li>
+					);
+				})}
+			</ul>
+		</nav>
+	)
+}
+
+<style>
+	/*
+	 * Every value is a custom property so a site can restyle the section without
+	 * overriding the component. `@layer` keeps these below unlayered site CSS, so
+	 * a plain selector in your own stylesheet always wins.
+	 */
+	@layer starlight.related {
+		.sl-related {
+			--sl-related-gap: 1.5rem;
+			--sl-related-heading-size: 1.125rem;
+			--sl-related-link-size: 1rem;
+			--sl-related-trail-size: 0.8125rem;
+			--sl-related-rule: 1px solid var(--sl-color-gray-5);
+
+			margin-top: var(--sl-related-margin, 2.5rem);
+		}
+
+		.sl-related__heading {
+			margin: 0 0 1rem;
+			padding-bottom: 0.3rem;
+			border-bottom: var(--sl-related-rule);
+			font-size: var(--sl-related-heading-size);
+			font-weight: 500;
+			line-height: 1.4;
+		}
+
+		.sl-related__list {
+			margin: 0;
+			padding: 0;
+			list-style: none;
+		}
+
+		/*
+		 * Starlight gives `.sl-markdown-content * + *` a top margin, which would
+		 * add stray gaps between these list items when the section is rendered
+		 * inside content. Row spacing is set here instead.
+		 */
+		.sl-related__item + .sl-related__item {
+			margin-top: var(--sl-related-gap);
+		}
+
+		.sl-related__link {
+			display: block;
+			color: var(--sl-color-text-accent);
+			font-size: var(--sl-related-link-size);
+			font-weight: 500;
+			text-decoration: none;
+		}
+
+		.sl-related__link:hover {
+			text-decoration: underline;
+		}
+
+		.sl-related__trail {
+			display: inline-flex;
+			align-items: center;
+			gap: 0.35em;
+			margin-top: 0.3rem;
+			color: var(--sl-color-gray-3);
+			font-size: var(--sl-related-trail-size);
+		}
+
+		.sl-related__trail-icon {
+			flex-shrink: 0;
+			font-size: 0.9em;
+		}
+	}
+</style>
