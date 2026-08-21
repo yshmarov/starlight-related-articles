@@ -2,7 +2,7 @@ import type { StarlightRouteData } from '@astrojs/starlight/route-data';
 import type { RuntimeConfig } from './config.ts';
 import { getRelatedIndex, type IndexedPage, type RelatedIndex } from './index-builder.ts';
 import { idForLocale, localeAgnosticKey } from './locale.ts';
-import { groupSiblings } from './siblings.ts';
+import { directorySiblings, groupSiblings } from './siblings.ts';
 
 export interface RelatedArticle {
 	/** Full Starlight page ID of the suggestion. */
@@ -121,14 +121,24 @@ export async function resolveRelatedArticles(options: {
 	}
 
 	// A page that exists only outside `sourceLocale` has no counterpart in the
-	// ranked corpus, so there is nothing to rank it against. Its sidebar group is
-	// a weaker but still relevant signal, and beats an empty section.
+	// ranked corpus, so there is nothing to rank it against. Siblings are a weaker
+	// but still relevant signal, and beat an empty section: prefer its sidebar
+	// group, then the pages filed beside it — the sidebar is built from one
+	// locale's tree, so a page unique to another locale may not be in it at all.
 	if (related.length === 0 && config.fallback === 'siblings') {
-		return groupSiblings(sidebar, {
+		const fromSidebar = groupSiblings(sidebar, {
 			currentHref: href(routeId),
 			currentTitle: title,
 			count: config.count,
 			dedupeByTitle: config.dedupeByTitle,
+		});
+		if (fromSidebar.length > 0) return fromSidebar;
+		return directorySiblings(index.byDirectory.get(page.dir), {
+			currentId: page.id,
+			currentTitle: title,
+			count: config.count,
+			dedupeByTitle: config.dedupeByTitle,
+			href,
 		});
 	}
 

@@ -1,4 +1,5 @@
 import type { StarlightRouteData } from '@astrojs/starlight/route-data';
+import type { IndexedPage } from './index-builder.ts';
 import type { RelatedArticle } from './resolve.ts';
 
 type SidebarEntry = StarlightRouteData['sidebar'][number];
@@ -61,4 +62,39 @@ function findGroupOf(sidebar: SidebarEntry[], href: string): SidebarEntry[] | un
 function sameHref(a: string, b: string): boolean {
 	const trim = (v: string) => (v.endsWith('/') && v !== '/' ? v.slice(0, -1) : v);
 	return trim(a) === trim(b);
+}
+
+/**
+ * The other pages filed in the same source directory, in file order.
+ *
+ * Second tier of the sibling fallback, for a page the sidebar doesn't contain
+ * at all — which happens on multilingual sites whose sidebar is built from one
+ * locale's tree, so a page existing only in another locale has no sidebar group
+ * to borrow from. Co-located files are a decent proxy for "same topic".
+ */
+export function directorySiblings(
+	group: IndexedPage[] | undefined,
+	options: {
+		currentId: string;
+		currentTitle: string;
+		count: number;
+		dedupeByTitle: boolean;
+		href: (id: string) => string;
+	}
+): RelatedArticle[] {
+	if (!group) return [];
+	const { currentId, currentTitle, count, dedupeByTitle, href } = options;
+
+	const seenTitles = new Set<string>([currentTitle]);
+	const siblings: RelatedArticle[] = [];
+	for (const page of group) {
+		if (page.id === currentId) continue;
+		if (dedupeByTitle) {
+			if (seenTitles.has(page.title)) continue;
+			seenTitles.add(page.title);
+		}
+		siblings.push({ id: page.id, title: page.title, href: href(page.id) });
+		if (siblings.length === count) break;
+	}
+	return siblings;
 }

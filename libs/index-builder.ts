@@ -15,6 +15,14 @@ export interface IndexedPage {
 	prefix: string;
 	/** ID with the locale prefix stripped. */
 	key: string;
+	/**
+	 * Directory the page's source file lives in. `slug` frontmatter can detach a
+	 * page's ID from its file path, so this is tracked separately — it is how the
+	 * sibling fallback finds pages "filed next to" one another.
+	 */
+	dir: string;
+	/** Source file path, used only to order siblings deterministically. */
+	filePath: string;
 }
 
 export interface RelatedIndex {
@@ -29,6 +37,8 @@ export interface RelatedIndex {
 	shared: boolean;
 	/** Locale directory names, so callers can split IDs without the config. */
 	localeKeys: string[];
+	/** Indexed pages grouped by source directory, in file order. */
+	byDirectory: Map<string, IndexedPage[]>;
 }
 
 /**
@@ -58,11 +68,14 @@ async function build(config: RuntimeConfig): Promise<RelatedIndex> {
 		if (!isIndexable(data, id, config)) continue;
 
 		const prefix = localePrefixOf(id, config.localeKeys);
+		const filePath = (entry as { filePath?: string }).filePath ?? '';
 		const page: IndexedPage = {
 			id,
 			title: data.title,
 			prefix,
 			key: localeAgnosticKey(id, config.localeKeys),
+			dir: filePath.slice(0, Math.max(0, filePath.lastIndexOf('/'))),
+			filePath,
 		};
 		pagesById.set(id, page);
 		let byLocale = translations.get(page.key);
@@ -87,12 +100,23 @@ async function build(config: RuntimeConfig): Promise<RelatedIndex> {
 		dedupeByTitle: config.dedupeByTitle,
 	};
 
+	const byDirectory = new Map<string, IndexedPage[]>();
+	for (const page of pagesById.values()) {
+		let group = byDirectory.get(page.dir);
+		if (!group) byDirectory.set(page.dir, (group = []));
+		group.push(page);
+	}
+	for (const group of byDirectory.values()) {
+		group.sort((a, b) => a.filePath.localeCompare(b.filePath));
+	}
+
 	return {
 		neighbors: buildSimilarityIndex(documents, options),
 		pagesById,
 		translations,
 		shared,
 		localeKeys: config.localeKeys,
+		byDirectory,
 	};
 }
 

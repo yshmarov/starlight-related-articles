@@ -119,9 +119,12 @@ to the URL the reader is on. Partial translations need no special handling.
 
 One case has no similarity data by construction: a page that exists *only*
 outside `sourceLocale`, so it has no counterpart in the ranked corpus. By default
-those pages fall back to the other pages in their **sidebar group** — a weaker
-signal than content similarity, but relevant, and better than an empty section.
-Set `fallback: 'none'` to render nothing instead.
+those pages fall back to their siblings — the other pages in their **sidebar
+group**, or, when the sidebar doesn't contain them at all, the pages **filed in
+the same directory**. (A multilingual sidebar is typically built from one
+locale's tree, so a page unique to another locale can be absent from it.) A
+weaker signal than content similarity, but relevant, and better than an empty
+section. Set `fallback: 'none'` to render nothing instead.
 
 Pages *excluded* from the index (drafts, `sidebar.hidden`, splash, `exclude`)
 always render nothing, whatever `fallback` says.
@@ -217,7 +220,7 @@ const related = getRelatedArticles(Astro.locals);
 | `libs/similarity.ts` | TF-IDF vectors + cosine ranking. Pure functions, no Astro dependency. |
 | `libs/index-builder.ts` | Reads the `docs` collection, filters it, ranks it once per build. |
 | `libs/resolve.ts` | Picks the current page's neighbours and localizes them. |
-| `libs/siblings.ts` | Sidebar-group fallback for pages the index can't rank. |
+| `libs/siblings.ts` | Sidebar-group and same-directory fallbacks. |
 | `middleware.ts` | Attaches the result to `Astro.locals.starlightRoute`. |
 | `components/RelatedArticles.astro` | Presentation only. |
 
