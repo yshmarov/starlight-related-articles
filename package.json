@@ -1,18 +1,26 @@
 {
   "name": "starlight-related-articles",
   "version": "0.1.0",
-  "description": "Starlight plugin that adds a “Related articles” section to your docs, ranked by build-time content similarity (TF-IDF) — no tags, no external service.",
+  "description": "Starlight plugin: a \"Related articles\" section ranked by build-time content similarity (TF-IDF) \u2014 no tags, no external service, no client-side JS.",
   "keywords": [
     "starlight",
     "starlight-plugin",
+    "starlight-component",
     "astro",
     "astro-component",
+    "astro-integration",
     "withastro",
     "documentation",
+    "docs",
     "related-articles",
     "related-posts",
+    "related-content",
+    "recommendations",
     "tf-idf",
-    "recommendations"
+    "tfidf",
+    "cosine-similarity",
+    "content-similarity",
+    "i18n"
   ],
   "license": "MIT",
   "author": "Yaro Shm",
@@ -39,6 +47,7 @@
     "middleware.ts",
     "virtual.d.ts",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "peerDependencies": {
@@ -57,6 +66,9 @@
     "access": "public"
   },
   "scripts": {
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
     "typecheck": "tsc --noEmit"
-  }
+  },
+  "funding": "https://github.com/sponsors/yshmarov",
+  "sideEffects": false
 }

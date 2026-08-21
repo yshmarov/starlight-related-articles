@@ -3,3 +3,6 @@ dist/
 .astro/
 *.tgz
 .DS_Store
+demo/dist/
+demo/.astro/
+demo/node_modules/
