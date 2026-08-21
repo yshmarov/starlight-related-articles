@@ -235,6 +235,13 @@ cd demo && npm install && npm run dev   # a small Starlight site using the plugi
 
 The ranking logic is pure and covered directly: title weighting, IDF suppression, tie-break determinism, code-fence handling, de-duplication, locale mapping, URL construction under every `base` / `trailingSlash` / `build.format` combination, and both sibling fallbacks.
 
+### Releasing
+
+`npm version patch|minor|major && git push --follow-tags`. The tagged push runs
+the tests, checks the tag matches `package.json`, and publishes from CI with a
+[provenance attestation](https://docs.npmjs.com/generating-provenance-statements)
+— so npm can show which workflow and commit produced the tarball.
+
 ## Compatibility
 
 - Starlight `>=0.32.0`
