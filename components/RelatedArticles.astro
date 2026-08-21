@@ -67,7 +67,8 @@ const trails = config.showTrail ? buildTrailMap(sidebar) : undefined;
 			border-bottom: var(--sl-related-rule);
 			font-size: var(--sl-related-heading-size);
 			font-weight: 500;
-			line-height: 1.4;
+			/* No `line-height`: inheriting keeps the heading on the host site's own
+			   vertical rhythm. Hardcoding one silently shifts the whole section. */
 		}
 
 		.sl-related__list {
