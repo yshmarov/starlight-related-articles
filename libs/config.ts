@@ -80,6 +80,18 @@ export const configSchema = z.object({
 		 */
 		exclude: z.array(z.string()).default([]),
 		/**
+		 * What to do for a page the similarity index cannot rank — in practice, a
+		 * page that exists only outside `sourceLocale`, so it has no counterpart in
+		 * the ranked corpus.
+		 *
+		 * `'siblings'` suggests the other pages in its sidebar group; `'none'`
+		 * renders nothing. Pages excluded from the index (drafts, `sidebar.hidden`,
+		 * splash, `exclude`) always render nothing regardless of this setting.
+		 *
+		 * @default 'siblings'
+		 */
+		fallback: z.enum(['siblings', 'none']).default('siblings'),
+		/**
 		 * Show each suggestion's sidebar group trail (e.g. `Guides > Advanced`)
 		 * beneath its title. Resolved from the sidebar Starlight already built
 		 * for the page, so it costs nothing and needs no configuration.
@@ -127,6 +139,7 @@ export type RuntimeConfig = Pick<
 	| 'stopWords'
 	| 'minScore'
 	| 'dedupeByTitle'
+	| 'fallback'
 	| 'sourceLocale'
 	| 'exclude'
 	| 'showTrail'

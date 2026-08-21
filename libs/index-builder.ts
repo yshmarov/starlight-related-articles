@@ -18,7 +18,8 @@ export interface IndexedPage {
 }
 
 export interface RelatedIndex {
-	/** Neighbour lists, best-first. Keyed by index key (see `keyFor`). */
+	/** Neighbour lists, best-first. Keyed by locale-agnostic key when a
+	 *  `sourceLocale` is shared across translations, otherwise by full page ID. */
 	neighbors: Map<string, string[]>;
 	/** Every indexed page, addressable by full page ID. */
 	pagesById: Map<string, IndexedPage>;
@@ -26,6 +27,8 @@ export interface RelatedIndex {
 	translations: Map<string, Map<string, IndexedPage>>;
 	/** Whether one locale's ranking is shared across all translations. */
 	shared: boolean;
+	/** Locale directory names, so callers can split IDs without the config. */
+	localeKeys: string[];
 }
 
 /**
@@ -39,11 +42,6 @@ function isIndexable(data: Record<string, any>, id: string, config: RuntimeConfi
 	if (data.template === 'splash') return false;
 	if (config.exclude.length > 0 && matchesAnyGlob(id, config.exclude)) return false;
 	return true;
-}
-
-/** The key a page is indexed under: locale-agnostic when sharing, else its ID. */
-export function keyFor(page: IndexedPage, index: RelatedIndex): string {
-	return index.shared ? page.key : page.id;
 }
 
 async function build(config: RuntimeConfig): Promise<RelatedIndex> {
@@ -94,6 +92,7 @@ async function build(config: RuntimeConfig): Promise<RelatedIndex> {
 		pagesById,
 		translations,
 		shared,
+		localeKeys: config.localeKeys,
 	};
 }
 

@@ -13,9 +13,13 @@ export const onRequest = defineRouteMiddleware(async (context) => {
 
   route.relatedArticles = await resolveRelatedArticles({
     config,
-    id: route.id,
+    // `entry.id` is the content that supplies this page's text — on a page using
+    // fallback content that is the default-locale entry, not the localized route.
+    entryId: route.entry.id,
+    routeId: route.id,
     locale: route.locale,
     pathname: context.url.pathname,
     title: route.entry.data.title,
+    sidebar: route.sidebar,
   });
 });

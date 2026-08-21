@@ -47,6 +47,7 @@ export default function starlightRelatedArticles(
 					stopWords: config.stopWords,
 					minScore: config.minScore,
 					dedupeByTitle: config.dedupeByTitle,
+					fallback: config.fallback,
 					sourceLocale: config.sourceLocale,
 					exclude: config.exclude,
 					showTrail: config.showTrail,

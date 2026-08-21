@@ -88,6 +88,7 @@ starlightRelatedArticles({
 | `stopWords` | `string[]` | ~50 structural English words | Words dropped before scoring. IDF already handles domain-ubiquitous terms. |
 | `minScore` | `number` | `0` | Drop neighbours at or below this cosine similarity. |
 | `dedupeByTitle` | `boolean` | `true` | Collapse same-titled pages to one suggestion (content cross-filed under several slugs). |
+| `fallback` | `'siblings' \| 'none'` | `'siblings'` | What to show for a page the index can't rank. See below. |
 | `sourceLocale` | `string` | — | Rank one locale's corpus and share the result across translations. See below. |
 | `exclude` | `string[]` | `[]` | Page-ID globs to keep out of the index. `*` matches within a segment, `**` across segments. |
 | `showTrail` | `boolean` | `true` | Show each suggestion's sidebar group trail beneath its title. |
@@ -108,6 +109,22 @@ starlightRelatedArticles({ sourceLocale: 'root' }) // or 'en', 'de', …
 Suggestions are titled in the reader's language where a translation exists, and their URLs are always localized — matching Starlight's own fallback behaviour, where an untranslated page is served in the default language at the localized URL.
 
 Leave `sourceLocale` unset to rank each locale's corpus independently.
+
+Pages that use Starlight's **fallback content** — a locale where the translation
+is missing, so the default-locale text is served at the localized URL — are
+ranked as the entry that supplies their text, and their suggestions are localized
+to the URL the reader is on. Partial translations need no special handling.
+
+### `fallback`: pages the index can't rank
+
+One case has no similarity data by construction: a page that exists *only*
+outside `sourceLocale`, so it has no counterpart in the ranked corpus. By default
+those pages fall back to the other pages in their **sidebar group** — a weaker
+signal than content similarity, but relevant, and better than an empty section.
+Set `fallback: 'none'` to render nothing instead.
+
+Pages *excluded* from the index (drafts, `sidebar.hidden`, splash, `exclude`)
+always render nothing, whatever `fallback` says.
 
 ### Styling
 
@@ -200,6 +217,7 @@ const related = getRelatedArticles(Astro.locals);
 | `libs/similarity.ts` | TF-IDF vectors + cosine ranking. Pure functions, no Astro dependency. |
 | `libs/index-builder.ts` | Reads the `docs` collection, filters it, ranks it once per build. |
 | `libs/resolve.ts` | Picks the current page's neighbours and localizes them. |
+| `libs/siblings.ts` | Sidebar-group fallback for pages the index can't rank. |
 | `middleware.ts` | Attaches the result to `Astro.locals.starlightRoute`. |
 | `components/RelatedArticles.astro` | Presentation only. |
 

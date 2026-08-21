@@ -1,6 +1,8 @@
+import type { StarlightRouteData } from '@astrojs/starlight/route-data';
 import type { RuntimeConfig } from './config.ts';
-import { getRelatedIndex, keyFor, type IndexedPage, type RelatedIndex } from './index-builder.ts';
-import { idForLocale } from './locale.ts';
+import { getRelatedIndex, type IndexedPage, type RelatedIndex } from './index-builder.ts';
+import { idForLocale, localeAgnosticKey } from './locale.ts';
+import { groupSiblings } from './siblings.ts';
 
 export interface RelatedArticle {
 	/** Full Starlight page ID of the suggestion. */
@@ -15,12 +17,12 @@ export interface RelatedArticle {
  * Turn the current page's route into a URL builder for *any* page ID, without
  * reaching into Starlight's internals.
  *
- * The current page's pathname and ID are both known, so the site's `base`,
+ * The current page's pathname and route ID are both known, so the site's `base`,
  * `trailingSlash` and `build.format` settings can be read straight off the
  * difference between them — no config plumbing, and correct by construction
  * even on sites that change those settings later.
  */
-function hrefBuilder(pathname: string, id: string): (id: string) => string {
+function hrefBuilder(pathname: string, routeId: string): (id: string) => string {
 	const trailingSlash = pathname.endsWith('/') && pathname !== '/';
 	const bare = trailingSlash ? pathname.slice(0, -1) : pathname;
 	const asFile = bare.endsWith('.html');
@@ -28,8 +30,8 @@ function hrefBuilder(pathname: string, id: string): (id: string) => string {
 
 	// Whatever precedes the page's own ID is the site base.
 	let base = withoutExtension;
-	if (id && withoutExtension.endsWith(`/${id}`)) {
-		base = withoutExtension.slice(0, -(id.length + 1));
+	if (routeId && withoutExtension.endsWith(`/${routeId}`)) {
+		base = withoutExtension.slice(0, -(routeId.length + 1));
 	}
 
 	return (target: string) => {
@@ -41,67 +43,73 @@ function hrefBuilder(pathname: string, id: string): (id: string) => string {
 }
 
 /**
- * Pick the best translation of a suggestion for the reader's locale.
+ * Resolve one neighbour into the reader's locale.
  *
- * Starlight serves fallback content at the localized URL when a page has no
- * translation, so the *href* is always localized; only the title falls back to
- * the source locale, which mirrors what the reader will actually see on arrival.
+ * Suggestions always stay inside the locale the reader is browsing — the same
+ * rule Starlight applies to its own sidebar and pagination. Where a translation
+ * is missing, Starlight still serves the page at the localized URL using
+ * default-locale content, so the href is localized unconditionally and only the
+ * *title* falls back — which is exactly what the reader will find on arrival.
  */
 function localizeSuggestion(
-	key: string,
+	neighborKey: string,
 	localePrefix: string,
 	index: RelatedIndex,
 	href: (id: string) => string
 ): RelatedArticle | undefined {
-	if (!index.shared) {
-		const page = index.pagesById.get(key);
-		return page && { id: page.id, title: page.title, href: href(page.id) };
-	}
-
+	const key = localeAgnosticKey(neighborKey, index.localeKeys);
 	const byLocale = index.translations.get(key);
 	if (!byLocale) return undefined;
-	const translated = byLocale.get(localePrefix);
-	// Fall back to any indexed translation for the title (there is always at
-	// least one, or the key would not be in the index).
-	const source = translated ?? byLocale.values().next().value;
+
+	const source = byLocale.get(localePrefix) ?? byLocale.values().next().value;
 	if (!source) return undefined;
+
 	const id = idForLocale(key, localePrefix);
 	return { id, title: source.title, href: href(id) };
 }
 
 /**
  * Resolve the related articles for the page currently being rendered. Returns an
- * empty array when the page is not in the index (landing pages, drafts, unlisted
- * content) — callers should render nothing in that case.
+ * empty array when the page is excluded from the index (landing pages, drafts,
+ * unlisted content) — callers should render nothing in that case.
  */
 export async function resolveRelatedArticles(options: {
 	config: RuntimeConfig;
-	/** `Astro.locals.starlightRoute.id` — the localized page ID. */
-	id: string;
+	/**
+	 * `Astro.locals.starlightRoute.entry.id` — the ID of the *content* backing
+	 * this route. On a page using fallback content this is the default-locale
+	 * entry, which is the one the similarity index knows about.
+	 */
+	entryId: string;
+	/** `Astro.locals.starlightRoute.id` — the localized route ID. */
+	routeId: string;
 	/** `Astro.locals.starlightRoute.locale` — `undefined` for the root locale. */
 	locale: string | undefined;
 	/** `Astro.url.pathname`. */
 	pathname: string;
 	/** The current page's title, so a page never suggests a copy of itself. */
 	title: string;
+	/** `Astro.locals.starlightRoute.sidebar`, for the group-sibling fallback. */
+	sidebar: StarlightRouteData['sidebar'];
 }): Promise<RelatedArticle[]> {
-	const { config, id, locale, pathname, title } = options;
+	const { config, entryId, routeId, locale, pathname, title, sidebar } = options;
 	const index = await getRelatedIndex(config);
 
-	const page: IndexedPage | undefined = index.pagesById.get(id);
+	// Keyed off the entry, not the route: a page served with fallback content is
+	// ranked as the entry that actually supplies its text.
+	const page: IndexedPage | undefined = index.pagesById.get(entryId);
 	if (!page) return [];
 
-	const neighbors = index.neighbors.get(keyFor(page, index));
-	if (!neighbors?.length) return [];
-
-	const href = hrefBuilder(pathname, id);
+	const href = hrefBuilder(pathname, routeId);
 	const localePrefix = locale ?? '';
+	const neighbors = index.neighbors.get(index.shared ? page.key : page.id) ?? [];
+
 	const seenTitles = new Set<string>([title]);
 	const related: RelatedArticle[] = [];
 
-	for (const key of neighbors) {
-		const suggestion = localizeSuggestion(key, localePrefix, index, href);
-		if (!suggestion || suggestion.id === id) continue;
+	for (const neighborKey of neighbors) {
+		const suggestion = localizeSuggestion(neighborKey, localePrefix, index, href);
+		if (!suggestion || suggestion.id === routeId || suggestion.id === entryId) continue;
 		// Re-run title de-duplication in the reader's language: two pages with
 		// distinct source titles can share a translated one.
 		if (config.dedupeByTitle) {
@@ -110,6 +118,18 @@ export async function resolveRelatedArticles(options: {
 		}
 		related.push(suggestion);
 		if (related.length === config.count) break;
+	}
+
+	// A page that exists only outside `sourceLocale` has no counterpart in the
+	// ranked corpus, so there is nothing to rank it against. Its sidebar group is
+	// a weaker but still relevant signal, and beats an empty section.
+	if (related.length === 0 && config.fallback === 'siblings') {
+		return groupSiblings(sidebar, {
+			currentHref: href(routeId),
+			currentTitle: title,
+			count: config.count,
+			dedupeByTitle: config.dedupeByTitle,
+		});
 	}
 
 	return related;
